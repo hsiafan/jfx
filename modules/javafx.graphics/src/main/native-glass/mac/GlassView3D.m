@@ -729,10 +729,20 @@
     self->shouldProcessKeyEvent = YES;
 }
 
+
+-(BOOL) isCodePointInUnicodeBlockNeedingIMEvent: (unichar) codePoint {
+    if ((codePoint >= 0x3000) && (codePoint <= 0x303F) || (codePoint >= 0xFF00) && (codePoint <= 0xFFEF)) {
+        // Code point is in 'CJK Symbols and Punctuation' Unicode block.
+        return YES;
+    }
+    return NO;
+}
+
 - (void) insertText:(id)aString replacementRange:(NSRange)replacementRange
 {
     IMLOG("insertText called with string: %s", [aString UTF8String]);
-    if ([self->nsAttrBuffer length] > 0 || [aString length] > 1) {
+    if ([self->nsAttrBuffer length] > 0 || [aString length] > 1 
+        || [aString length] == 1 && [self isCodePointInUnicodeBlockNeedingIMEvent:[aString characterAtIndex:0]]) {
         [self->_delegate notifyInputMethod:aString attr:4 length:(int)[aString length] cursor:(int)[aString length] selectedRange: NSMakeRange(NSNotFound, 0)];
         self->shouldProcessKeyEvent = NO;
     } else {
