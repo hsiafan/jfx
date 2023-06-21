@@ -26,6 +26,7 @@
 package com.sun.javafx.font.coretext;
 
 import java.util.ArrayList;
+import java.util.Locale;
 
 import com.sun.javafx.font.FallbackResource;
 import com.sun.javafx.font.FontFallbackInfo;
@@ -126,21 +127,47 @@ public class CTFactory extends PrismFontFactory {
         // Note: even if "." fonts do report a file, macOS does not like apps looking
         // them up that way.
         if (name.startsWith("System ")) {
-           if (!bold) {
-               info.add("Hiragino Sans W3", "/System/Library/Fonts/ヒラギノ角ゴシック W3.ttc", null);
-               info.add("Hiragino Sans GB W3", "/System/Library/Fonts/Hiragino Sans GB.ttc", null);
-               info.add("Apple SD Gothic Neo Regular", "/System/Library/Fonts/AppleSDGothicNeo.ttc", null);
-               info.add("PingFang SC Regular", "/System/Library/Fonts/PingFang.ttc", null);
-               info.add("PingFang TC Regular", "/System/Library/Fonts/PingFang.ttc", null);
-               info.add("PingFang HK Regular", "/System/Library/Fonts/PingFang.ttc", null);
-           } else {
-               info.add("Hiragino Sans W6", "/System/Library/Fonts/ヒラギノ角ゴシック W6.ttc", null);
-               info.add("Hiragino Sans GB W6", "System/Library/Fonts/Hiragino Sans GB.ttc", null);
-               info.add("Apple SD Gothic Neo Bold", "/System/Library/Fonts/AppleSDGothicNeo.ttc", null);
-               info.add("PingFang SC Semibold", "/System/Library/Fonts/PingFang.ttc", null);
-               info.add("PingFang TC Semibold", "/System/Library/Fonts/PingFang.ttc", null);
-               info.add("PingFang HK Semibold", "/System/Library/Fonts/PingFang.ttc", null);
-           }
+            Locale locale = Locale.getDefault();
+            String language = locale.getLanguage();
+            String country = locale.getCountry();
+            switch (language) {
+                case "zh":
+                    switch (country) {
+                        case "TW":
+                            if (!bold) {
+                                info.add("PingFang TC Regular", "/System/Library/Fonts/PingFang.ttc", null);
+                            } else {
+                                info.add("PingFang TC Semibold", "/System/Library/Fonts/PingFang.ttc", null);
+                            }
+                        case "HK":
+                            if (!bold) {
+                                info.add("PingFang HK Regular", "/System/Library/Fonts/PingFang.ttc", null);
+                            } else {
+                                info.add("PingFang HK Semibold", "/System/Library/Fonts/PingFang.ttc", null);
+                            }
+                        case "CN":
+                        default:
+                            if (!bold) {
+                                info.add("PingFang SC Regular", "/System/Library/Fonts/PingFang.ttc", null);
+                            } else {
+                                info.add("PingFang SC Semibold", "/System/Library/Fonts/PingFang.ttc", null);
+                            }
+                    }
+                case "ja":
+                    if (!bold) {
+                        info.add("Hiragino Sans W3", "/System/Library/Fonts/ヒラギノ角ゴシック W3.ttc", null);
+                    } else {
+                        info.add("Hiragino Sans W6", "/System/Library/Fonts/ヒラギノ角ゴシック W6.ttc", null);
+                    }
+                case "ko":
+                    if (!bold) {
+                        info.add("Apple SD Gothic Neo Regular", "/System/Library/Fonts/AppleSDGothicNeo.ttc", null);
+                    } else {
+                        info.add("Apple SD Gothic Neo Bold", "/System/Library/Fonts/AppleSDGothicNeo.ttc", null);
+                    }
+                default:
+
+            }
         }
 
         // Now add hardwired fall backs in case of problems with the above.

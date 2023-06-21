@@ -202,7 +202,7 @@ Java_com_sun_javafx_font_MacFontFinder_getCascadeList
 {
     CTFontRef ctFontRef = (CTFontRef)fontRef;
 
-    CFArrayRef codes = CFLocaleCopyISOLanguageCodes();
+    CFArrayRef codes = CFLocaleCopyPreferredLanguages();
     CFArrayRef fds = CTFontCopyDefaultCascadeListForLanguages(ctFontRef, codes);
     CFRelease(codes);
 
@@ -242,7 +242,7 @@ Java_com_sun_javafx_font_MacFontFinder_getCascadeListRefs
 {
     CTFontRef ctFontRef = (CTFontRef)fontRef;
 
-    CFArrayRef codes = CFLocaleCopyISOLanguageCodes();
+    CFArrayRef codes = CFLocaleCopyPreferredLanguages();
     CFArrayRef fds = CTFontCopyDefaultCascadeListForLanguages(ctFontRef, codes);
     CFRelease(codes);
 
