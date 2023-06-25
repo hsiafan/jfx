@@ -659,7 +659,22 @@ public abstract class PrismFontFile implements FontResource, FontConstants {
 
     // Comment out some of this until we have both a need and a way to use it.
     // private int embeddingInfo;
-    //private int fontWeight;
+
+    //    Thin(100),
+    //    ExtraLight(200),
+    //    UltraLight(200),
+    //    Light(300),
+    //    Normal(400),
+    //    Regular(400),
+    //    Medium(500),
+    //    SemiBold(600),
+    //    DemiBold(600),
+    //    Bold(700),
+    //    ExtraBold(800),
+    //    UltraBold(800),
+    //    Black(900),
+    //    Heavy(900);
+    private short fontWeight;
     private boolean isBold;
     private boolean isItalic;
     private float upem;
@@ -715,6 +730,7 @@ public abstract class PrismFontFile implements FontResource, FontConstants {
             int fsSelection = os_2Table.getChar(62) & 0xffff;
             isItalic = (fsSelection & fsSelectionItalicBit) != 0;
             isBold   = (fsSelection & fsSelectionBoldBit) != 0;
+            fontWeight = os_2Table.getShort(4);
         } else {
             DirectoryEntry headDE = getDirectoryEntry(headTag);
             Buffer headTable = filereader.readBlock(headDE.offset,
@@ -722,7 +738,12 @@ public abstract class PrismFontFile implements FontResource, FontConstants {
             short macStyleBits = headTable.getShort(44);
             isItalic = (macStyleBits & MACSTYLE_ITALIC_BIT) != 0;
             isBold = (macStyleBits & MACSTYLE_BOLD_BIT) != 0;
+            fontWeight = -1;
         }
+    }
+
+    public short getFontWeight() {
+        return fontWeight;
     }
 
     @Override

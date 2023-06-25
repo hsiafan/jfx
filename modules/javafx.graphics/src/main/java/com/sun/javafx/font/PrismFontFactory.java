@@ -33,12 +33,7 @@ import java.io.FilenameFilter;
 import java.io.InputStream;
 import java.lang.ref.WeakReference;
 import java.lang.reflect.Method;
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.Iterator;
-import java.util.Locale;
+import java.util.*;
 
 import com.sun.glass.ui.Screen;
 import com.sun.glass.utils.NativeLibLoader;
@@ -337,7 +332,7 @@ public abstract class PrismFontFactory implements FontFactory {
         if (filename == null) {
             return null;
         }
-        PrismFontFile fr = createFontResource(name, filename, 0, register,
+        PrismFontFile fr = createFontResource(null, filename, 0, register,
                                               embedded, copy, tracked);
         if (fr == null) {
             return null;
@@ -526,38 +521,69 @@ public abstract class PrismFontFactory implements FontFactory {
 
         FontResource plainFR = null, boldFR = null,
             italicFR = null, boldItalicFR = null;
+        var fontResources = new ArrayList<FontResource>(family.size());
         for (String fontName : family) {
             String lcFontName = fontName.toLowerCase();
-            fr = fontResourceMap.get(lcFontName);
-            if (fr == null) {
+            FontResource fontResource = fontResourceMap.get(lcFontName);
+            if (fontResource == null) {
                 String file = findFile(lcFontName);
                 if (file != null) {
-                    fr = getFontResource(fontName, file);
+                    fontResource = getFontResource(fontName, file);
                 }
-                if (fr == null) {
+                if (fontResource == null) {
                     continue;
                 }
-                storeInMap(lcFontName, fr);
+                storeInMap(lcFontName, fontResource);
             }
-            if (bold == fr.isBold() && italic == fr.isItalic()) {
-                storeInMap(lcFamilyName+styleStr, fr);
-                if (wantComp) {  // wrap with fallback support
-                    fr = new PrismCompositeFontResource(fr,
-                                                      lcFamilyName+styleStr);
-                }
-                return fr;
-            }
-            if (!fr.isBold()) {
-                if (!fr.isItalic()) {
-                    plainFR = fr;
+            fontResources.add(fontResource);
+
+            if (!fontResource.isBold()) {
+                if (!fontResource.isItalic()) {
+                    plainFR = fontResource;
                 } else {
-                    italicFR = fr;
+                    italicFR = fontResource;
                 }
             } else {
-                if (!fr.isItalic()) {
-                    boldFR = fr;
+                if (!fontResource.isItalic()) {
+                    boldFR = fontResource;
                 } else {
-                    boldItalicFR = fr;
+                    boldItalicFR = fontResource;
+                }
+            }
+        }
+
+        var prismFontFiles = new ArrayList<PrismFontFile>(fontResources.size());
+        for (FontResource fontResource : fontResources) {
+            if (fontResource instanceof PrismFontFile fontFile) {
+                short weightClass = fontFile.getFontWeight();
+                if (weightClass >= 0) {
+                    prismFontFiles.add(fontFile);
+                }
+            }
+        }
+
+        if (prismFontFiles.size() == fontResources.size()) {
+            prismFontFiles.sort(Comparator.comparing(PrismFontFile::getFontWeight));
+            short fontWeight = bold ? (short) 700 : 400;
+            var fontFile = selectBestMatchFont(prismFontFiles, fontWeight, italic);
+            if (fontFile == null) {
+                fontFile = selectBestMatchFont(prismFontFiles, fontWeight, !italic);
+            }
+            FontResource fontResource = fontFile;
+            storeInMap(lcFamilyName + styleStr, fontResource);
+            if (wantComp) {  // wrap with fallback support
+                fontResource = new PrismCompositeFontResource(fontResource,
+                        lcFamilyName + styleStr);
+            }
+            return fontResource;
+        } else {
+            for (FontResource fontResource : fontResources) {
+                if (bold == fontResource.isBold() && italic == fontResource.isItalic()) {
+                    storeInMap(lcFamilyName + styleStr, fontResource);
+                    if (wantComp) {  // wrap with fallback support
+                        fontResource = new PrismCompositeFontResource(fontResource, lcFamilyName + styleStr);
+                    }
+                    return fontResource;
                 }
             }
         }
@@ -605,6 +631,64 @@ public abstract class PrismFontFactory implements FontFactory {
             }
         }
         return fr;
+    }
+
+    // search for best match font with weight and italic.
+    // fontFiles should be sorted
+    private PrismFontFile selectBestMatchFont(ArrayList<PrismFontFile> fontFiles, short fontWeight, boolean italic) {
+        if (fontWeight >= 400 && fontWeight < 700) { // normal
+            var fontFile = searchByWeight(fontFiles, fontWeight, (short)700, italic);
+            if (fontFile == null) {
+                fontFile = searchByWeight(fontFiles, fontWeight, (short)0, italic);
+            }
+            if (fontFile == null) {
+                fontFile = searchByWeight(fontFiles, (short)700, (short)10000, italic);
+            }
+            return fontFile;
+        }
+        if (fontWeight >= 700) { // bold
+            var fontFile = searchByWeight(fontFiles, fontWeight, (short)10000, italic);
+            if (fontFile == null) {
+                fontFile = searchByWeight(fontFiles, fontWeight, (short)0, italic);
+            }
+            return fontFile;
+        }
+        // fontWeight <= 400, light
+        var fontFile = searchByWeight(fontFiles, fontWeight, (short)0, italic);
+        if (fontFile == null) {
+            fontFile = searchByWeight(fontFiles, fontWeight, (short)10000, italic);
+        }
+        return fontFile;
+    }
+
+    // beginWeight included
+    // endWeight excluded
+    private PrismFontFile searchByWeight(ArrayList<PrismFontFile> fontFiles, short beginWeight, short endWeight,
+                                         boolean italic) {
+        if (beginWeight == endWeight) {
+            return null;
+        } else if (beginWeight < endWeight) {
+            for (PrismFontFile font : fontFiles) {
+                if (font.getFontWeight() >= endWeight) {
+                    return null;
+                }
+                if (font.getFontWeight() >= beginWeight && font.isItalic() == italic) {
+                    return font;
+                }
+            }
+            return null;
+        } else {
+            for (int i = fontFiles.size() - 1; i >= 0; i--) {
+                var font = fontFiles.get(i);
+                if (font.getFontWeight() <= endWeight) {
+                    return null;
+                }
+                if (font.getFontWeight() <= beginWeight && font.isItalic() == italic) {
+                    return font;
+                }
+            }
+            return null;
+        }
     }
 
     @Override
