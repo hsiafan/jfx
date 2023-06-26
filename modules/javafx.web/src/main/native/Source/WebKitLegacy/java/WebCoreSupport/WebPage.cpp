@@ -1123,16 +1123,17 @@ JNIEXPORT void JNICALL Java_com_sun_webkit_WebPage_twkOpen
 }
 
 JNIEXPORT void JNICALL Java_com_sun_webkit_WebPage_twkLoad
-    (JNIEnv* env, jobject self, jlong pFrame, jstring text, jstring contentType)
+    (JNIEnv* env, jobject self, jlong pFrame, jbyteArray data, jstring contentType)
 {
     Frame* frame = static_cast<Frame*>(jlong_to_ptr(pFrame));
     if (!frame) {
         return;
     }
 
-    const char* stringChars = env->GetStringUTFChars(text, JNI_FALSE);
-    size_t stringLen = (size_t)env->GetStringUTFLength(text);
-    RefPtr<SharedBuffer> buffer = SharedBuffer::create(stringChars, (int)stringLen);
+//    const char* stringChars = env->GetStringUTFChars(text, JNI_FALSE);
+    jbyte* stringChars = env->GetByteArrayElements(data, NULL);
+    size_t stringLen = (size_t)env->GetArrayLength(data);
+    RefPtr<SharedBuffer> buffer = SharedBuffer::create((const char*)stringChars, (int)stringLen);
 
     static const URL emptyUrl({ }, ""_s);
     ResourceResponse response(URL(), String(env, contentType), stringLen, "UTF-8"_s);
@@ -1148,7 +1149,8 @@ JNIEXPORT void JNICALL Java_com_sun_webkit_WebPage_twkLoad
     frameLoadRequest.setIsRequestFromClientOrUserInput();
     frame->loader().load(WTFMove(frameLoadRequest));
 
-    env->ReleaseStringUTFChars(text, stringChars);
+    env->ReleaseByteArrayElements(data, stringChars, JNI_ABORT);
+//    env->ReleaseStringUTFChars(text, stringChars);
 }
 
 JNIEXPORT jboolean JNICALL Java_com_sun_webkit_WebPage_twkIsLoading

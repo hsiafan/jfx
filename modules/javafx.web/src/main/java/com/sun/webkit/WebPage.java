@@ -45,6 +45,7 @@ import java.net.MalformedURLException;
 import java.net.URL;
 import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
+import java.nio.charset.StandardCharsets;
 import java.security.AccessControlContext;
 import java.security.AccessController;
 import java.security.PrivilegedAction;
@@ -1316,16 +1317,17 @@ public final class WebPage {
             if (!frames.contains(frameID)) {
                 return;
             }
+            byte[] data = text.getBytes(StandardCharsets.UTF_8);
             // TODO: handle contentType
             if (twkIsLoading(frameID)) {
                 // Postpone loading new content while webkit is
                 // about to commit the DocumentLoader from
                 // provisional state to committed state
                 Invoker.getInvoker().postOnEventThread(() -> {
-                    twkLoad(frameID, text, contentType);
+                    twkLoad(frameID, data, contentType);
                 });
             } else {
-                twkLoad(frameID, text, contentType);
+                twkLoad(frameID, data, contentType);
             }
         } finally {
             unlockPage();
@@ -2643,7 +2645,7 @@ public final class WebPage {
     private native void twkOpen(long pFrame, String url);
     private native void twkOverridePreference(long pPage, String key, String value);
     private native void twkResetToConsistentStateBeforeTesting(long pPage);
-    private native void twkLoad(long pFrame, String text, String contentType);
+    private native void twkLoad(long pFrame, byte[] data, String contentType);
     private native boolean twkIsLoading(long pFrame);
     private native void twkStop(long pFrame);
     private native void twkStopAll(long pPage); // sync
