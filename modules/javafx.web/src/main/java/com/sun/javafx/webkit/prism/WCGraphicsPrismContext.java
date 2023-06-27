@@ -26,6 +26,7 @@
 package com.sun.javafx.webkit.prism;
 
 import com.sun.glass.ui.Screen;
+import com.sun.javafx.font.FontResource;
 import com.sun.javafx.font.FontStrike;
 import com.sun.javafx.font.Metrics;
 import com.sun.javafx.font.PGFont;
@@ -928,6 +929,52 @@ class WCGraphicsPrismContext extends WCGraphicsContext {
                     "Drawing %d glyphs @(%.1f, %.1f)",
                     glyphs.length, x, y));
         }
+        PGFont font = (PGFont) f.getPlatformFont();
+        final FontResource fontResource = font.getFontResource();
+        boolean hasColorGlyph = false;
+        for (int glyph : glyphs) {
+            if (fontResource.isColorGlyph(glyph)) {
+                hasColorGlyph = true;
+                break;
+            }
+        }
+        if (!hasColorGlyph || glyphs.length == 1) {
+            drawStringInternal(f, glyphs, advances, x, y);
+            return;
+        }
+
+        boolean lastIsEmoji = false;
+        int lastPos = 0;
+        int pos = 0;
+        float drawX = x;
+        for (; pos < glyphs.length; pos++) {
+            int gcode = glyphs[pos];
+            boolean isEmoji = fontResource.isColorGlyph(gcode);
+            if (lastIsEmoji || isEmoji && lastPos < pos) {
+                int runLen = pos - lastPos;
+                int[] runGlyphs = new int[runLen];
+                float[] runAdvances = new float[runLen];
+                System.arraycopy(glyphs, lastPos, runGlyphs, 0, runLen);
+                System.arraycopy(advances, lastPos, runAdvances, 0, runLen);
+                drawStringInternal(f, runGlyphs, runAdvances, drawX, y);
+                for (float charAdvance : runAdvances) {
+                    drawX += charAdvance;
+                }
+                lastPos = pos;
+            }
+            lastIsEmoji = isEmoji;
+        }
+        int runLen = pos - lastPos;
+        int[] runGlyphs = new int[runLen];
+        float[] runAdvances = new float[runLen];
+        System.arraycopy(glyphs, lastPos, runGlyphs, 0, runLen);
+        System.arraycopy(advances, lastPos, runAdvances, 0, runLen);
+        drawStringInternal(f, runGlyphs, runAdvances, drawX, y);
+    }
+
+    private void drawStringInternal(final WCFont f, final int[] glyphs,
+                           final float[] advances, final float x, final float y) {
+
         PGFont font = (PGFont)f.getPlatformFont();
         TextRun gl = TextUtilities.createGlyphList(glyphs, advances, x, y);
 
