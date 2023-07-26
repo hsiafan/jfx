@@ -1221,7 +1221,8 @@ public abstract class PrismFontFile implements FontResource, FontConstants {
          * Limit use of this because we aren't caching the result.
          */
         if (PrismFontFactory.isMacOSX && isColorGlyph(glyphCode)) {
-            return getAdvanceFromPlatform(glyphCode, ptSize);
+//            return getAdvanceFromPlatform(glyphCode, ptSize);
+            return getAdvanceFromHMTX(glyphCode, ptSize);
         } else {
             return getAdvanceFromHMTX(glyphCode, ptSize);
         }

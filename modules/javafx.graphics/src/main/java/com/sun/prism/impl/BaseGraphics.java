@@ -455,6 +455,45 @@ public abstract class BaseGraphics implements RectShadowGraphics {
                     0, 0, w, h);
     }
 
+    public void drawColorEmojiTexture(Texture tex,
+                            float dx1, float dy1, float dx2, float dy2,
+                            float sx1, float sy1, float sx2, float sy2)
+    {
+        BaseTransform xform = isSimpleTranslate ? IDENT : getTransformNoClone();
+        xform = new Affine3D(
+                1.0, xform.getMxy(), xform.getMxz(), xform.getMxt(),
+                xform.getMyx(), 1.0, xform.getMyz(), xform.getMyt(),
+                xform.getMzx(), xform.getMzy(), xform.getMzz(), xform.getMzt()
+        );
+
+        PixelFormat format = tex.getPixelFormat();
+        if (format == PixelFormat.BYTE_ALPHA) {
+            // Note that we treat this as a paint operation, using the
+            // given texture as the alpha mask; perhaps it would be better
+            // to treat this as a separate operation from drawTexture(), but
+            // overloading drawTexture() seems like an equally valid option.
+            context.validatePaintOp(this, xform, tex, dx1, dy1, dx2-dx1, dy2-dy1);
+        } else {
+            context.validateTextureOp(this, xform, tex, format);
+        }
+
+        float pw = tex.getPhysicalWidth();
+        float ph = tex.getPhysicalHeight();
+        float cx1 = tex.getContentX();
+        float cy1 = tex.getContentY();
+        float tx1 = (cx1 + sx1) / pw;
+        float ty1 = (cy1 + sy1) / ph;
+        float tx2 = (cx1 + sx2) / pw;
+        float ty2 = (cy1 + sy2) / ph;
+
+        VertexBuffer vb = context.getVertexBuffer();
+        if (context.isSuperShaderEnabled()) {
+            vb.addSuperQuad(dx1, dy1, dx2, dy2, tx1, ty1, tx2, ty2, false);
+        } else {
+            vb.addQuad(dx1, dy1, dx2, dy2, tx1, ty1, tx2, ty2);
+        }
+    }
+
     @Override
     public void drawTexture(Texture tex,
                             float dx1, float dy1, float dx2, float dy2,

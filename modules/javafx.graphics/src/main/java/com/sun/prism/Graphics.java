@@ -162,6 +162,11 @@ public interface Graphics {
     public void drawTexture(Texture tex,
                             float dx1, float dy1, float dx2, float dy2,
                             float sx1, float sy1, float sx2, float sy2);
+    default void drawColorEmojiTexture(Texture tex,
+                                      float dx1, float dy1, float dx2, float dy2,
+                                      float sx1, float sy1, float sx2, float sy2) {
+        drawTexture(tex, dx1, dy1, dx2, dy2, sx1, sy1, sx2, sy2);
+    }
     public void drawTexture3SliceH(Texture tex,
                                    float dx1, float dy1, float dx2, float dy2,
                                    float sx1, float sy1, float sx2, float sy2,
@@ -249,7 +254,10 @@ public interface Graphics {
       // format arg is the Buffer pixel format. Texture may not be created with the
       // same as requested (ie the software pipeline).
       tex.update(bb, format, 0, 0, 0, 0, width, height, scan, false);
-      drawTexture(tex, x+ox, y+oy, x+ox+width, y+oy+height, 0, 0, width, height);
+      BaseTransform transform = getTransformNoClone();
+      float nx = (float) (x * transform.getMxx()) + ox;
+      float ny = (float) (y * transform.getMyy()) + oy;
+      drawColorEmojiTexture(tex, nx, ny, nx+width, ny+height, 0, 0, width, height);
       tex.dispose();
     }
 }

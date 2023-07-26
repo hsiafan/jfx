@@ -78,7 +78,12 @@ class CTFontStrike extends PrismFontStrike<CTFontFile> {
             }
         }
 
-        fontRef = fontResource.getFontRef(size, matrix);
+        // 控制普通字体的2倍，不控制emoji字体
+        if (matrix != null && fontResource.getPSName().equals("AppleColorEmoji")) {
+            fontRef = fontResource.getFontRef((float) (size*matrix.a), matrix);
+        } else {
+            fontRef = fontResource.getFontRef(size, matrix);
+        }
         if (fontRef == 0) {
             if (PrismFontFactory.debugFonts) {
                 System.err.println("Failed to create CTFont for " + this);
