@@ -515,7 +515,6 @@
     if (![[self inputContext] handleEvent:theEvent] || shouldProcessKeyEvent) {
         [self->_delegate sendJavaKeyEvent:theEvent isDown:YES];
     }
-    shouldProcessKeyEvent = YES;
 }
 
 - (void)keyUp:(NSEvent *)theEvent
